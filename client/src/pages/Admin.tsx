@@ -1,28 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { 
   DollarSign, 
   Package, 
   Clock, 
-  TrendingUp, 
   Plus, 
   Edit, 
   Trash2, 
   FileText,
-  Users,
   ShoppingCart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import ProductForm from "@/components/ProductForm"; // Import ProductForm
 
 interface Order {
-  id: string;
+  _id: string;
   customerName: string;
   products: string[];
   total: number;
@@ -31,20 +29,43 @@ interface Order {
 }
 
 interface AdminProduct {
-  id: string;
+  _id: string;
   name: string;
+  description: string;
   category: string;
   sizes: { size: string; price: number }[];
-  stock: number;
+  images: string[];
+  stock?: number; // Make stock optional as it's not in the Product model
 }
 
 const Admin = () => {
   const { toast } = useToast();
-  
-  // Mock data - in a real app, this would come from an API
-  const [orders, setOrders] = useState<Order[]>([
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [adminProducts, setAdminProducts] = useState<AdminProduct[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Fetch initial data
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { data } = await axios.get("/api/products");
+        setAdminProducts(data);
+      } catch (error) {
+        console.error("Failed to fetch products", error);
+        toast({
+          title: "Error",
+          description: "Failed to load products.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchProducts();
+  }, [toast]);
+
+  // Mock data for orders
+  useState<Order[]>([
     {
-      id: "ORD-001",
+      _id: "ORD-001",
       customerName: "Sarah Johnson",
       products: ["Lotus Radiance Serum", "Green Leaf Face Cream"],
       total: 205,
@@ -52,7 +73,7 @@ const Admin = () => {
       date: "2024-01-15"
     },
     {
-      id: "ORD-002",
+      _id: "ORD-002",
       customerName: "Mike Chen",
       products: ["Herbal Botanical Elixir"],
       total: 95,
@@ -60,7 +81,7 @@ const Admin = () => {
       date: "2024-01-14"
     },
     {
-      id: "ORD-003",
+      _id: "ORD-003",
       customerName: "Emma Rodriguez",
       products: ["Pink Lotus Face Mask", "Refreshing Herbal Toner"],
       total: 83,
@@ -69,29 +90,31 @@ const Admin = () => {
     }
   ]);
 
-  const [adminProducts, setAdminProducts] = useState<AdminProduct[]>([
-    {
-      id: "1",
-      name: "Lotus Radiance Serum",
-      category: "Serums",
-      sizes: [{ size: "30ml", price: 85 }],
-      stock: 45
-    },
-    {
-      id: "2",
-      name: "Green Leaf Face Cream",
-      category: "Moisturizers",
-      sizes: [{ size: "50ml", price: 65 }],
-      stock: 32
-    },
-    {
-      id: "3",
-      name: "Herbal Botanical Elixir",
-      category: "Treatments",
-      sizes: [{ size: "30ml", price: 95 }],
-      stock: 18
+  // Handler to save a new product
+  const handleSaveProduct = async (productData: Omit<AdminProduct, '_id'>) => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const { data: newProduct } = await axios.post("/api/products", productData, config);
+      setAdminProducts([...adminProducts, newProduct]);
+      setIsDialogOpen(false); // Close the dialog
+      toast({
+        title: "Product Added",
+        description: `${newProduct.name} has been successfully added.`,
+      });
+    } catch (error) {
+      console.error("Failed to add product", error);
+      toast({
+        title: "Error",
+        description: "Failed to add the product.",
+        variant: "destructive",
+      });
     }
-  ]);
+  };
 
   // Stats calculations
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
@@ -102,7 +125,7 @@ const Admin = () => {
   const updateOrderStatus = (orderId: string, newStatus: "pending" | "processing" | "completed") => {
     setOrders(prev => 
       prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order._id === orderId ? { ...order, status: newStatus } : order
       )
     );
     toast({
@@ -112,7 +135,7 @@ const Admin = () => {
   };
 
   const deleteOrder = (orderId: string) => {
-    setOrders(prev => prev.filter(order => order.id !== orderId));
+    setOrders(prev => prev.filter(order => order._id !== orderId));
     toast({
       title: "Order deleted",
       description: `Order ${orderId} has been removed`,
@@ -120,10 +143,9 @@ const Admin = () => {
   };
 
   const generateInvoice = (order: Order) => {
-    // In a real app, this would generate a PDF
     toast({
       title: "Invoice Generated",
-      description: `Invoice for order ${order.id} is being prepared`,
+      description: `Invoice for order ${order._id} is being prepared`,
     });
   };
 
@@ -309,7 +331,7 @@ const Admin = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Product Management</CardTitle>
-              <Dialog>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-primary hover:bg-primary/90">
                     <Plus className="mr-2 h-4 w-4" />
@@ -320,39 +342,23 @@ const Admin = () => {
                   <DialogHeader>
                     <DialogTitle>Add New Product</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4">
-                    <Input placeholder="Product name" />
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="serums">Serums</SelectItem>
-                        <SelectItem value="moisturizers">Moisturizers</SelectItem>
-                        <SelectItem value="treatments">Treatments</SelectItem>
-                        <SelectItem value="masks">Masks</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Textarea placeholder="Product description" />
-                    <Input placeholder="Price" type="number" />
-                    <Input placeholder="Stock quantity" type="number" />
-                    <Button className="w-full bg-primary hover:bg-primary/90">
-                      Add Product
-                    </Button>
-                  </div>
+                  <ProductForm
+                    onSave={handleSaveProduct}
+                    onClose={() => setIsDialogOpen(false)}
+                  />
                 </DialogContent>
               </Dialog>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {adminProducts.map((product) => (
-                  <Card key={product.id} className="p-4">
+                  <Card key={product._id} className="p-4">
                     <div className="flex justify-between items-center">
                       <div className="flex-1">
                         <h3 className="font-semibold">{product.name}</h3>
                         <p className="text-sm text-muted-foreground">Category: {product.category}</p>
                         <p className="text-sm text-muted-foreground">
-                          Price: ${product.sizes[0]?.price} | Stock: {product.stock}
+                          Price: ${product.sizes[0]?.price} | Stock: {product.stock || 'N/A'}
                         </p>
                       </div>
                       <div className="flex gap-2">
