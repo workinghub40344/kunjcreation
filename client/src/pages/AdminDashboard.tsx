@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import React, { useState, useEffect } from "react";
 import ProductForm from "@/components/ProductForm";
-import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Search, Edit, Trash2, PlusCircle, LogOut } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 interface Product {
   _id: string;
@@ -23,6 +24,12 @@ const ProductsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    navigate("/admin");
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -47,6 +54,7 @@ const ProductsTab = () => {
   };
 
   const handleSaveProduct = async (productData: Product) => {
+    console.log("Saving product:", productData);
     try {
       if (editingProduct) {
         const res = await axios.put(`http://localhost:5000/api/products/${editingProduct._id}`, productData);
@@ -73,9 +81,14 @@ const ProductsTab = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Product Management</h2>
-        <Button onClick={() => setIsAddingProduct(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsAddingProduct(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+          </Button>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" /> Log Out
+          </Button>
+        </div>
       </div>
 
       {/* Search bar */}

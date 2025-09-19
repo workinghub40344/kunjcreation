@@ -26,7 +26,8 @@ const getProductById = async (req, res) => {
 // @route   POST /api/products
 // @access  Private/Admin
 const createProduct = async (req, res) => {
-  const { name, description, category, sizes, featured } = req.body;
+  console.log("Creating product with data:", req.body, req.files);
+  const { name, description, category, sizes, featured, images } = req.body;
 
   const product = new Product({
     name,
@@ -34,7 +35,7 @@ const createProduct = async (req, res) => {
     category,
     sizes,
     featured,
-    images: req.files.map(file => file.path),
+    images,
     admin: req.admin._id,
   });
 
@@ -46,7 +47,7 @@ const createProduct = async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
-  const { name, description, category, sizes, featured } = req.body;
+  const { name, description, category, sizes, featured, images } = req.body;
 
   const product = await Product.findById(req.params.id);
 
@@ -56,10 +57,7 @@ const updateProduct = async (req, res) => {
     product.category = category;
     product.sizes = sizes;
     product.featured = featured;
-
-    if (req.files && req.files.length > 0) {
-      product.images = req.files.map(file => file.path);
-    }
+    product.images = images;
 
     const updatedProduct = await product.save();
     res.json(updatedProduct);
