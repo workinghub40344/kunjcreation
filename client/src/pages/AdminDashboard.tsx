@@ -5,8 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import React, { useState, useEffect } from "react";
-
-import { Search, Edit, Trash2 } from "lucide-react";
+import ProductForm from "@/components/ProductForm";
+import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
 import axios from "axios";
 
 interface Product {
@@ -22,6 +22,7 @@ const ProductsTab = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -45,6 +46,24 @@ const ProductsTab = () => {
     }
   };
 
+  const handleSaveProduct = async (productData: Product) => {
+    try {
+      if (editingProduct) {
+        const res = await axios.put(`http://localhost:5000/api/products/${editingProduct._id}`, productData);
+        setProducts(
+          products.map((p) => (p._id === editingProduct._id ? res.data : p))
+        );
+      } else {
+        const res = await axios.post("http://localhost:5000/api/products", productData);
+        setProducts([...products, res.data]);
+      }
+      setEditingProduct(null);
+      setIsAddingProduct(false);
+    } catch (err) {
+      console.error("Error saving product:", err);
+    }
+  };
+
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -54,7 +73,9 @@ const ProductsTab = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Product Management</h2>
-        {/* Add Product Dialog button yaha aaega */}
+        <Button onClick={() => setIsAddingProduct(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+        </Button>
       </div>
 
       {/* Search bar */}
@@ -140,10 +161,27 @@ const ProductsTab = () => {
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
             </DialogHeader>
-            {/* Editing form code yaha likhna hoga */}
+            <ProductForm
+              product={editingProduct}
+              onSave={handleSaveProduct}
+              onClose={() => setEditingProduct(null)}
+            />
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add Product Dialog */}
+      <Dialog open={isAddingProduct} onOpenChange={setIsAddingProduct}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Product</DialogTitle>
+          </DialogHeader>
+          <ProductForm
+            onSave={handleSaveProduct}
+            onClose={() => setIsAddingProduct(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
