@@ -17,8 +17,8 @@ logs/*
 .env.production.local
 
 # Build output
-dist/
-build/
+
+
 
 # VSCode settings
 .vscode/
