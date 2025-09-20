@@ -200,8 +200,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import React, { useState, useEffect } from "react";
 import ProductForm from "@/components/ProductForm";
-import { Search, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Search, Edit, Trash2, PlusCircle, LogOut } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // CORRECTED Product interface
 interface Product {
@@ -218,6 +220,8 @@ const ProductsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const API_URL = "http://localhost:5000/api/products";
 
@@ -257,6 +261,15 @@ const ProductsTab = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/admin/login");
+  };
+
   const handleSaveProduct = async (productData: FormData) => {
     try {
       const config = getAuthConfig();
@@ -286,9 +299,14 @@ const ProductsTab = () => {
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Product Management</h2>
-        <Button onClick={() => setIsAddingProduct(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsAddingProduct(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+          </Button>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" /> Log Out
+          </Button>
+        </div>
       </div>
 
       <div className="relative flex-1">
@@ -344,11 +362,13 @@ const ProductsTab = () => {
           <DialogHeader>
             <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
           </DialogHeader>
-          <ProductForm
-            product={editingProduct}
-            onSave={handleSaveProduct}
-            onClose={() => { setEditingProduct(null); setIsAddingProduct(false); }}
-          />
+          <div className="max-h-[calc(90vh-10rem)] overflow-y-auto p-1">
+            <ProductForm
+              product={editingProduct}
+              onSave={handleSaveProduct}
+              onClose={() => { setEditingProduct(null); setIsAddingProduct(false); }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
