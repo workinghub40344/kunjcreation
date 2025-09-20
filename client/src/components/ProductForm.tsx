@@ -157,7 +157,7 @@ import axios from "axios";
 interface Product {
   _id?: string;
   name: string;
-  description: string; // Add description
+  description: string;
   category: string;
   sizes: { size: string; price: number }[];
   images: string[];
@@ -165,7 +165,7 @@ interface Product {
 
 interface ProductFormProps {
   product?: Product | null;
-  onSave: (product: Product) => void; // Accept Product object, not FormData
+  onSave: (product: FormData) => void;
   onClose: () => void;
 }
 
@@ -221,27 +221,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onClose }) =
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const submissionData = new FormData();
+    submissionData.append("name", formData.name);
+    submissionData.append("description", formData.description);
+    submissionData.append("category", formData.category);
+    submissionData.append("sizes", JSON.stringify(formData.sizes));
 
-    // 1. Upload images to Cloudinary
-    const uploadPromises = imageFiles.map(async (file) => {
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", file);
-      uploadFormData.append("upload_preset", "kunj-creation"); // Replace with your Cloudinary upload preset
-      const res = await axios.post("https://api.cloudinary.com/v1_1/dm2kaeeri/image/upload", uploadFormData);
-      return res.data.secure_url;
+    // Append existing images if any
+    if (product && product.images) {
+      submissionData.append("images", JSON.stringify(product.images));
+    }
+
+    imageFiles.forEach((file) => {
+      submissionData.append("images", file);
     });
 
-    const newImageUrls = await Promise.all(uploadPromises);
-    const finalImages = [...formData.images, ...newImageUrls];
-
-    // 2. Prepare data to be sent to your backend
-    const productData = {
-      ...formData,
-      images: finalImages,
-    };
-    
-    // 3. Call the onSave prop with the final data
-    onSave(productData);
+    onSave(submissionData);
   };
 
   return (

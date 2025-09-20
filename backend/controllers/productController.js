@@ -127,8 +127,15 @@ const getProductById = async (req, res) => {
 // @route   POST /api/products
 // @access  Private/Admin
 const createProduct = async (req, res) => {
-  // Destructure all fields, including description and images, from req.body
-  const { name, description, category, sizes, featured, images } = req.body;
+  const { name, description, category, featured } = req.body;
+  let sizes;
+  try {
+    sizes = JSON.parse(req.body.sizes);
+  } catch (error) {
+    return res.status(400).json({ message: "Invalid sizes format" });
+  }
+
+  const images = req.files ? req.files.map((file) => file.path) : [];
 
   const product = new Product({
     name,
@@ -136,7 +143,7 @@ const createProduct = async (req, res) => {
     category,
     sizes,
     featured,
-    images, // Use the array of URLs from the body
+    images,
     admin: req.admin._id,
   });
 
@@ -148,16 +155,40 @@ const createProduct = async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
-  const { name, description, category, sizes, featured, images } = req.body;
+  const { name, description, category, featured } = req.body;
+  let sizes;
+  if (req.body.sizes) {
+    try {
+      sizes = JSON.parse(req.body.sizes);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid sizes format" });
+    }
+  }
+
   const product = await Product.findById(req.params.id);
 
   if (product) {
     product.name = name || product.name;
     product.description = description || product.description;
     product.category = category || product.category;
-    product.sizes = sizes || product.sizes;
-    product.featured = featured; // Use featured directly, default will be handled by schema if undefined
-    product.images = images || product.images;
+    if (sizes) {
+      product.sizes = sizes;
+    }
+
+    if (req.body.featured !== undefined) {
+      product.featured = featured;
+    }
+
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((file) => file.path);
+      product.images = [...product.images, ...newImages];
+    } else if (req.body.images) {
+      try {
+        product.images = JSON.parse(req.body.images);
+      } catch (error) {
+        // Do nothing if images are not valid JSON
+      }
+    }
 
     const updatedProduct = await product.save();
     res.json(updatedProduct);

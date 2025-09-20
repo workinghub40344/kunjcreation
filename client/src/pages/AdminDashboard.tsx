@@ -257,13 +257,16 @@ const ProductsTab = () => {
     }
   };
 
-  const handleSaveProduct = async (productData: Omit<Product, "_id">) => {
+  const handleSaveProduct = async (productData: FormData) => {
     try {
+      const config = getAuthConfig();
+      config.headers["Content-Type"] = "multipart/form-data";
+
       if (editingProduct) {
-        const res = await axios.put(`${API_URL}/${editingProduct._id}`, productData, getAuthConfig());
+        const res = await axios.put(`${API_URL}/${editingProduct._id}`, productData, config);
         setProducts(products.map((p) => (p._id === editingProduct._id ? res.data : p)));
       } else {
-        const res = await axios.post(API_URL, productData, getAuthConfig());
+        const res = await axios.post(API_URL, productData, config);
         setProducts([...products, res.data]);
       }
       setEditingProduct(null);
@@ -337,7 +340,7 @@ const ProductsTab = () => {
       </Card>
 
       <Dialog open={!!editingProduct || isAddingProduct} onOpenChange={() => { setEditingProduct(null); setIsAddingProduct(false); }}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
           </DialogHeader>
