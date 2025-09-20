@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import ProductForm from "@/components/ProductForm"; // Import ProductForm
 
 interface Order {
@@ -40,9 +41,19 @@ interface AdminProduct {
 
 const Admin = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [adminProducts, setAdminProducts] = useState<AdminProduct[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/admin/login");
+  };
 
   // Fetch initial data
   useEffect(() => {
@@ -91,12 +102,13 @@ const Admin = () => {
   ]);
 
   // Handler to save a new product
-  const handleSaveProduct = async (productData: Omit<AdminProduct, '_id'>) => {
+  const handleSaveProduct = async (productData: FormData) => {
     try {
       const token = localStorage.getItem("adminToken");
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
       };
       const { data: newProduct } = await axios.post("/api/products", productData, config);
@@ -169,9 +181,14 @@ const Admin = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage your e-commerce operations</p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage your e-commerce operations</p>
+        </div>
+        <Button variant="outline" onClick={handleLogout}>
+          Log Out
+        </Button>
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
@@ -239,9 +256,9 @@ const Admin = () => {
             <CardContent>
               <div className="space-y-4">
                 {orders.slice(0, 3).map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={order._id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                      <div className="font-medium">{order.id}</div>
+                      <div className="font-medium">{order._id}</div>
                       <div className="text-sm text-muted-foreground">{order.customerName}</div>
                     </div>
                     <div className="text-right">
@@ -264,11 +281,11 @@ const Admin = () => {
             <CardContent>
               <div className="space-y-4">
                 {orders.map((order) => (
-                  <Card key={order.id} className="p-4">
+                  <Card key={order._id} className="p-4">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold">{order.id}</h3>
+                          <h3 className="font-semibold">{order._id}</h3>
                           <StatusBadge status={order.status} />
                         </div>
                         <p className="text-sm text-muted-foreground mb-1">
@@ -287,7 +304,7 @@ const Admin = () => {
                         <Select 
                           value={order.status} 
                           onValueChange={(value: "pending" | "processing" | "completed") => 
-                            updateOrderStatus(order.id, value)
+                            updateOrderStatus(order._id, value)
                           }
                         >
                           <SelectTrigger className="w-32">
@@ -311,7 +328,7 @@ const Admin = () => {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => deleteOrder(order.id)}
+                            onClick={() => deleteOrder(order._id)}
                             className="text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />

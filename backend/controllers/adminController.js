@@ -57,4 +57,14 @@ const registerAdmin = async (req, res) => {
   }
 };
 
-module.exports = { loginAdmin, registerAdmin };
+// @desc    Logout admin
+// @route   POST /api/admin/logout
+// @access  Private
+const logoutAdmin = (req, res) => {
+  // In a real-world scenario with session-based authentication,
+  // you would invalidate the session here.
+  // For JWT, the client is responsible for clearing the token.
+  res.status(200).json({ message: "Logged out successfully" });
+};
+
+module.exports = { loginAdmin, registerAdmin, logoutAdmin };
