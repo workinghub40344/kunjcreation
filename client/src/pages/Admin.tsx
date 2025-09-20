@@ -1,15 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { 
-  DollarSign, 
-  Package, 
-  Clock, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  FileText,
-  ShoppingCart
-} from "lucide-react";
+import { DollarSign, Package, Clock, Plus, Edit, Trash2, FileText,ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
